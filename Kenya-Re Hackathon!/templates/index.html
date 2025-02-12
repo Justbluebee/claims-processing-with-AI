@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claim Processing App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <img src="{{ url_for('static', filename='images/kenya re logo.jpg') }}" alt="Company Logo">
+        </div>
+        <h1>CLAIMS PROCESSING</h1>
+        <h2>Upload your files here</h2>
+        <form id="uploadForm" action="/upload" method="POST" enctype="multipart/form-data">
+            <label for="treaty">Treaty :</label>
+            <input type="file" name="treaty" accept="application/pdf" required><br><br>
+            <label for="bordereaux">Bordereaux :</label>
+            <input type="file" name="bordereaux" accept=".xls,.xlsx" required><br><br>
+            <label for="statement">Statement :</label>
+            <input type="file" name="statement" accept="application/pdf" required><br><br>
+            <input type="submit" value="Upload">
+        </form>
+        <div id="result"></div>
+    </div>
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+</body>
+</html>
