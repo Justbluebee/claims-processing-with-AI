@@ -13,32 +13,23 @@ document.addEventListener('DOMContentLoaded', function() {
             body: formData
         })
         .then(response => {
-            if (response.ok) {
-                // Expecting a blob (binary data) for the PDF
-                return response.blob(); 
-            } else {
-                throw new Error('Failed to process files');
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
             }
+            return response.text();
         })
-        .then(blob => {
-            // Create a temporary URL for the blob
-            const url = window.URL.createObjectURL(blob);
+        .then(htmlContent => {
+            // Replace the current page content
+            document.open();
+            document.write(htmlContent);
+            document.close();
             
-            // Create a hidden link and click it to trigger the download
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
-            a.download = 'discrepancy_report.pdf';
-            document.body.appendChild(a);
-            a.click();
-            
-            // Clean up the temporary URL
-            window.URL.revokeObjectURL(url);
-            resultDiv.innerHTML = 'Download complete.';
+            // Optional: Scroll to top of new content
+            window.scrollTo(0, 0);
         })
         .catch(error => {
             console.error('Error:', error);
-            resultDiv.innerHTML = 'An error occurred while processing the files.',error;
+            resultDiv.innerHTML = `An error occurred: ${error.message}`;
         });
     });
 });

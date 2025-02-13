@@ -1,9 +1,11 @@
-from flask import Flask, request, render_template, send_file, jsonify
+from flask import jsonify,render_template_string
+from flask import Flask, request, render_template, send_file, jsonify,redirect, url_for
 import pandas as pd
 import pdfplumber
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import io
+import AI_Integration
 
 app = Flask(__name__)
 
@@ -21,6 +23,22 @@ def upload_file():
     treaty_file = request.files['treaty']
     bordereaux_file = request.files['bordereaux']
     statement_file = request.files['statement']
+
+    try:
+
+        # Generate the HTML report
+        report=AI_Integration.process_files(treaty_file,bordereaux_file)
+        
+        if not report:
+            return "No report data provided", 400
+        html_content = AI_Integration.generate_final_report(report)
+        print(html_content)
+        
+        
+
+    except Exception as e:
+        print(f"Error occurred in AI processing: {e}")
+        return jsonify({'error': f"An error occurred while using API: {str(e)}"}), 500
     
     # Validate file types (PDF for treaty and statement, Excel for bordereaux)
     allowed_pdf = {'pdf'}
@@ -30,16 +48,23 @@ def upload_file():
             allowed_file(bordereaux_file.filename, allowed_excel) and
             allowed_file(statement_file.filename, allowed_pdf)):
         return jsonify({'error': 'Invalid file format. Treaty and Statement should be PDF, and Bordereaux should be Excel.'}), 400
-    
+        
     try:
-        # Extract data from PDF and Excel files
         treaty_text = extract_text_from_pdf(treaty_file)
         bordereaux_df = pd.read_excel(bordereaux_file)
         statement_text = extract_text_from_pdf(statement_file)
-    
+
+        with open("treatyoutput.txt", "w",encoding="utf-8") as file1:
+            print('im  here')
+            file1.write(treaty_text)
+        with open("statementoutput.txt", "w",encoding="utf-8") as file2:
+            file2.write(statement_text)
+
+        
+            
         # Identify common fields
         common_fields = identify_common_fields(bordereaux_df, statement_text, treaty_text)
-    
+
         # Perform comparisons
         discrepancies = compare_bordereaux_statement(bordereaux_df, statement_text, common_fields)
         treaty_discrepancies = compare_bordereaux_treaty(bordereaux_df, treaty_text, common_fields)
@@ -50,20 +75,21 @@ def upload_file():
         
         # Detect duplicate data in Bordereaux
         duplicate_data = detect_duplicate_data(bordereaux_df)
-    
+
         # Generate report
         report = generate_report(discrepancies, treaty_discrepancies, premium_discrepancies, fraud_flags, duplicate_data)
-    
+
         # Generate PDF from the report
         pdf_buffer = generate_pdf_report(report)
-    
+
         # Return PDF for download
-        return send_file(pdf_buffer, as_attachment=True, download_name='discrepancy_report.pdf', mimetype='application/pdf')
-    
+        
+
     except Exception as e:
         # Log the error and send a response with the error message
         print(f"Error occurred: {e}")
-        return jsonify({'error': f"An error occurred while processing the files: {str(e)}"}), 500
+        return jsonify({'error': f"An error occurred in data analysis the files: {str(e)}"}), 500
+    return html_content, 200, {'Content-Type': 'text/html'}
 
 def allowed_file(filename, allowed_extensions):
     """Utility function to check file extensions"""
@@ -75,6 +101,8 @@ def extract_text_from_pdf(file):
         text = ''
         for page in pdf.pages:
             text += page.extract_text()
+    char_count = len(text)
+    print('character count= ',char_count)
     return text
 
 def identify_common_fields(bordereaux_df, statement_text, treaty_text):
@@ -183,7 +211,7 @@ def generate_pdf_report(report):
     c = canvas.Canvas(buffer, pagesize=letter)
     
     # Header
-    c.drawString(100, 750, "Discrepancy Report")
+    c.drawString(100, 750, "Discrepancy fu Report")
     y = 720
     
     # Debug print for report
